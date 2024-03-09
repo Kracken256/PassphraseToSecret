@@ -2063,9 +2063,6 @@ struct keyparts_st
     uint64_t d : 11;
 } __attribute__((packed));
 
-#define CHKMAX 32
-#define KEYPARTS_SIZE (sizeof(struct keyparts_st))
-
 bool pwsec_derivebytes(const char *mnemonic, OUT uint8_t key[6])
 {
     char x[4][9]; // store each mnemonic word with NULL terminator
