@@ -2072,8 +2072,24 @@ struct keyparts_st
 } __attribute__((packed));
 
 #define CHKMAX 32
-
 #define KEYPARTS_SIZE (sizeof(struct keyparts_st))
+
+#define MASK_A 0
+#define MASK_B 1
+#define MASK_C 2
+#define MASK_D 3
+#define MASK_E 4
+#define MASK_F 5
+
+static void translate(uint8_t x[6])
+{
+    x[0] ^= MASK_A;
+    x[1] ^= MASK_B;
+    x[2] ^= MASK_C;
+    x[3] ^= MASK_D;
+    x[4] ^= MASK_E;
+    x[5] ^= MASK_F;
+}
 
 bool pwsec_derivebytes(const char *mnemonic, OUT uint8_t key[6])
 {
@@ -2125,6 +2141,7 @@ bool pwsec_derivebytes(const char *mnemonic, OUT uint8_t key[6])
     if (i != u.parts.d.parts.chk) // checksum failed
         return false;
 
+    translate(u.key);
     memcpy(key, u.key, 6); // copy key
 
     memset(&u, 0xff, sizeof(u)); // clear stack for security
@@ -2144,6 +2161,8 @@ void pwsec_mnemonic(const uint8_t key[6], OUT char mnemonic[MNEONIC_MAX_LENGTH])
     } __attribute__((packed)) u;
 
     memcpy(u.key, key, 6); // copy key
+
+    translate(u.key);
 
     // calculate checksum
     u.parts.d.parts.chk = (u.parts.a + u.parts.b + u.parts.c + u.parts.d.d) % CHKMAX;
