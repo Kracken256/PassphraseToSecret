@@ -2060,36 +2060,11 @@ struct keyparts_st
     uint64_t a : 11;
     uint64_t b : 11;
     uint64_t c : 11;
-    union
-    {
-        uint64_t d : 11;
-        struct
-        {
-            uint64_t v : 6;
-            uint64_t chk : 5;
-        } __attribute__((packed)) parts;
-    } __attribute__((packed)) d;
+    uint64_t d : 11;
 } __attribute__((packed));
 
 #define CHKMAX 32
 #define KEYPARTS_SIZE (sizeof(struct keyparts_st))
-
-#define MASK_A 0
-#define MASK_B 1
-#define MASK_C 2
-#define MASK_D 3
-#define MASK_E 4
-#define MASK_F 5
-
-static void translate(uint8_t x[6])
-{
-    x[0] ^= MASK_A;
-    x[1] ^= MASK_B;
-    x[2] ^= MASK_C;
-    x[3] ^= MASK_D;
-    x[4] ^= MASK_E;
-    x[5] ^= MASK_F;
-}
 
 bool pwsec_derivebytes(const char *mnemonic, OUT uint8_t key[6])
 {
@@ -2098,12 +2073,15 @@ bool pwsec_derivebytes(const char *mnemonic, OUT uint8_t key[6])
     {
         uint8_t key[6];
         struct keyparts_st parts;
+        uint64_t i;
     } __attribute__((packed)) u;
     int_fast16_t k;
     int_fast8_t i, j;
     bool a, b, c, d;
 
     a = b = c = d = false;
+
+    u.i = 0; // clear key
 
     for (i = 0; i < 4; i++) // for each mnemonic word
     {
@@ -2130,24 +2108,16 @@ bool pwsec_derivebytes(const char *mnemonic, OUT uint8_t key[6])
         if (!c && (c = (strcmp(x[2], wordlist[k]) == 0))) // search only if not found yet
             u.parts.c = k;
         if (!d && (d = (strcmp(x[3], wordlist[k]) == 0))) // search only if not found yet
-            u.parts.d.d = k;
+            u.parts.d = k;
     }
 
     if (!(a && b && c && d)) // failed to find all words
         return false;
 
-    i = (u.parts.a + u.parts.b + u.parts.c + u.parts.d.d) % CHKMAX;
-
-    if (i != u.parts.d.parts.chk) // checksum failed
-        return false;
-
-    translate(u.key);
-    memcpy(key, u.key, 6); // copy key
+    memcpy(key, u.key, 6);   // copy key
 
     memset(&u, 0xff, sizeof(u)); // clear stack for security
     memset(x, 0xff, sizeof(x));  // clear stack for security
-
-    // numbers don't contain secrets, so don't them
 
     return true;
 }
@@ -2162,17 +2132,12 @@ void pwsec_mnemonic(const uint8_t key[6], OUT char mnemonic[MNEONIC_MAX_LENGTH])
 
     memcpy(u.key, key, 6); // copy key
 
-    translate(u.key);
-
-    // calculate checksum
-    u.parts.d.parts.chk = (u.parts.a + u.parts.b + u.parts.c + u.parts.d.d) % CHKMAX;
-
     // create mnemonic
     snprintf(mnemonic, MNEONIC_MAX_LENGTH, "%s %s %s %s",
              wordlist[u.parts.a], // bitfield prevents overflow
              wordlist[u.parts.b],
              wordlist[u.parts.c],
-             wordlist[u.parts.d.d]);
+             wordlist[u.parts.d]);
 
     memset(&u, 0xff, sizeof(u)); // clear stack for security
 
