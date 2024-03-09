@@ -1,0 +1,3 @@
+# Simple library to generate a 4 word passphrase
+
+The phrase as an effective entropy of 39 bits. When combined with `argon2id`, this can make a easy to remember code for authentication. It is not designed to be used for file encryption or other stored data. The idea is that among `argon2id`, API network bandwidth limitations, and reasonable lockout policies, the key is sufficient for authentication.
